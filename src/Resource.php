@@ -22,19 +22,21 @@ class Resource
     {
         if (empty($this->_apiResource)) {
             $apiResourse = (json_decode(file_get_contents(__DIR__ . '/swagger.json'), true))['paths'];
-            array_walk(
-                $apiResourse,
-                function (&$path, $index) {
-                    $path = array_shift(array_keys(($get = array_shift((array_shift($path))['responses']))['content']));
+            foreach ($apiResourse as $enpoint => $item) {
+                foreach ($item as $method => $resource) {
+                    foreach ($resource['responses'] as $index) {
+                        if (!empty($index['content'])){
+                            $value = array_keys($index['content'])[0];
+                            preg_match_all('/(\/[A-Z-a-z]*)+/m', $enpoint, $match);
+                            $path  = implode('', array_shift($match));
+                            $res[] = array('value'=>$value, 'path'=>$path, 'pattern' => $enpoint);
+                        }
+                    }
                 }
-            );
-            $res = array();
-            foreach ($apiResourse as $key => $value) {
-                preg_match_all('/(\/[A-Z-a-z]*)+/m', $key, $match);
-                $res[] = array('value' => $value, 'path' => implode('', array_shift($match)), 'pattern' => $key);
             }
             $this->_apiResource = $res;
         }
+
         return $this->_apiResource;
     }
 
@@ -77,15 +79,14 @@ class Resource
     public function get($data = null)
     {
         $uri = $this->getUri();
-        $content = (array_shift(array_filter($this->apiResourse(), function ($item) use ($uri) {
-            return strpos($uri, $item['path']);
-        })))['value'];
-        echo $content;
+        $elememt = array_filter($this->apiResourse(), function ($item) use ($uri) {
+            return empty($item['path']) ? '' : strpos($uri, $item['path']);
+        });
+        $content = array_shift($elememt)['value'];
         if ($data !== null) {
             $uri .= '?';
             $uri .= http_build_query($data);
         }
-        echo '<br>'.$uri;
         return $this->sendApiRequest($uri, 'GET', array(), $content);
     }
 

@@ -61,7 +61,7 @@ class Resource
      */
     public function getUri()
     {
-        return $this->parent->getUri() . '/' . $this->id;
+        return $this->parent->getUri() . '/' . str_replace('_','-',$this->id);
     }
 
     /**
